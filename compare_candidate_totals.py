@@ -37,7 +37,7 @@ def compare_candidate_totals(office_types, year, candidate_id, envs):
 
     mismatch_list = set([])
     envs_to_check = {env: url_lookup[env] for env in envs.split(",")}
-    endpoints = ["datatable", "candidate", "election"]
+    endpoints = ["totals datatable", "candidate profile", "election profile"]
     values_to_check = ["receipts", "disbursements", "cash_on_hand_end_period"]
 
     for candidate_info in get_top_candidates(office_types, year, candidate_id):
@@ -77,12 +77,12 @@ def compare_candidate_totals(office_types, year, candidate_id, envs):
                 mismatch_list.add((candidate.id, candidate.name))
             else:
                 # Take the top result
-                env_results.set("datatable", datatable_results[0])
-                env_results.set("candidate", candidate_results[0])
+                env_results.set(endpoints[0], datatable_results[0])
+                env_results.set(endpoints[1], candidate_results[0])
                 # Take the matched result
-                env_results.set("election", election_match)
+                env_results.set(endpoints[2], election_match)
                 for value in values_to_check:
-                    baseline = env_results.get("datatable", value)
+                    baseline = env_results.get(endpoints[0], value)
                     print(f"\n| Data source \t| {value} |\n|--\t\t|\t--\t|")
                     for endpoint in endpoints:
                         print(
