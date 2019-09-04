@@ -21,15 +21,13 @@ election_profile = (
     "&api_key=" + api_key
 )
 
-# TODO: Do a manual deploy with a bug to test this.
-# Maybe election profile page since that's python and won't mess up the db
 
 # Click can't take lists as args - must be strings
 @click.command()
 @click.option(
     "--office-types", default="H, S, P", help="Which offices to check. Format as H,S"
 )
-@click.option("--year", default=2020, help="Start year")
+@click.option("--year", default=2020, help="Start year. Check this plus 2 and 4 for future senate.")
 @click.option("--candidate-id", default=None, help="Check one candidate")
 @click.option(
     "--envs",
@@ -40,7 +38,7 @@ def compare_candidate_totals(office_types, year, candidate_id, envs):
 
     mismatch_list = set([])
     envs_to_check = {env: url_lookup[env] for env in envs.split(",")}
-    endpoints = ["datatable", "candidate", "election"]
+    endpoints = ["totals datatable", "candidate profile", "election profile"]
     values_to_check = ["receipts", "disbursements", "cash_on_hand_end_period"]
 
     for candidate_info in get_top_candidates(office_types, year, candidate_id):
@@ -80,12 +78,19 @@ def compare_candidate_totals(office_types, year, candidate_id, envs):
                 mismatch_list.add((candidate.id, candidate.name))
             else:
                 # Take the top result
-                env_results.set("datatable", datatable_results[0])
-                env_results.set("candidate", candidate_results[0])
+                env_results.set(endpoints[0], datatable_results[0])
+                env_results.set(endpoints[1], candidate_results[0])
                 # Take the matched result
-                env_results.set("election", election_match)
+                env_results.set(endpoints[2], election_match)
                 for value in values_to_check:
-                    baseline = env_results.get("datatable", value)
+                    baseline = env_results.get(endpoints[0], value)
+                    print(f"\n| Data source \t| {value} |\n|--\t\t|\t--\t|")
+                    for endpoint in endpoints:
+                        print(
+                            "| {} \t| ${:,.2f}|".format(
+                                endpoint, env_results.get(endpoint, value)
+                            )
+                        )
                     if any(
                         env_results.get(endpoint, value) != baseline
                         for endpoint in endpoints
@@ -104,25 +109,26 @@ def compare_candidate_totals(office_types, year, candidate_id, envs):
 
             print(f"\nMismatch list ({env}): {mismatch_list}")
 
-        for endpoint in endpoints:
-            print(f"\n****Checking across environments: {endpoint} ****\n")
-            for value in values_to_check:
-                # Grab the baseline value for the first environment
-                baseline = env_results_list[0].get(endpoint, value)
-                # If any values differ across environment
-                if any(
-                    result.get(endpoint, value) != baseline
-                    for result in env_results_list
-                ):
-                    print("\n!!! ERROR - environment results don't match!!!")
-                    print(f"| Data source | Total {value} |\n|--|--|")
-                    for result in env_results_list:
-                        print(
-                            "| {} {} {}\t\t|\t${:,.2f}|".format(
-                                endpoint, value, result.env, result.get(endpoint, value)
+        if len(envs_to_check.items()) > 1:
+            for endpoint in endpoints:
+                print(f"\n****Checking across environments: {endpoint} ****\n")
+                for value in values_to_check:
+                    # Grab the baseline value for the first environment
+                    baseline = env_results_list[0].get(endpoint, value)
+                    # If any values differ across environment
+                    if any(
+                        result.get(endpoint, value) != baseline
+                        for result in env_results_list
+                    ):
+                        print("\n!!! ERROR - environment results don't match!!!")
+                        print(f"| Data source | Total {value} |\n|--|--|")
+                        for result in env_results_list:
+                            print(
+                                "| {} {} {}\t\t|\t${:,.2f}|".format(
+                                    endpoint, value, result.env, result.get(endpoint, value)
+                                )
                             )
-                        )
-                    mismatch_list.add((candidate.id, candidate.name))
+                        mismatch_list.add((candidate.id, candidate.name))
 
 
 def get_top_candidates(office_types, start_year, candidate_id):
@@ -213,7 +219,6 @@ class Candidate(object):
                 self.id, self.election, "true", self.office_full.lower()
             )
         )
-        print("base_url", base_url)
         if base_url == "http://localhost:5000":
             election_full_label = "election_full"
         else:
@@ -231,6 +236,15 @@ class Candidate(object):
             )
             # 2-year totals for candidate profile page
             candidate_url += f"&{election_full_label}={election_full}"
+
+        # Office-specific queries
+        if self.office == "H":
+            # Add state and district to elections
+            election_url += (
+                f"&state={self.state}&district={self.district}&election_full=True"
+            )
+            # 2-year totals for candidate profile page
+            candidate_url += "&full_election=False"
 
         elif self.office == "S":
             # Add state to elections
