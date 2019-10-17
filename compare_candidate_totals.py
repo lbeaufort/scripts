@@ -219,17 +219,17 @@ class Candidate(object):
                 f"&state={self.state}&district={self.district}&election_full=True"
             )
             # 2-year totals for candidate profile page
-            candidate_url += "&full_election=False"
+            candidate_url += "&election_full=False"
 
         elif self.office == "S":
             # Add state to elections
             election_url += f"&state={self.state}&election_full=True"
             # 6-year totals for candidate profile page
-            candidate_url += "&full_election=True"
+            candidate_url += "&election_full=True"
 
         elif self.office == "P":
             # 4-year totals for candidate profile page
-            candidate_url += "&full_election=True"
+            candidate_url += "&election_full=True"
 
         return datatable_url, candidate_url, election_url
 
