@@ -21,6 +21,7 @@ election_profile = (
     "&api_key=" + api_key
 )
 
+
 # Click can't take lists as args - must be strings
 @click.command()
 @click.option(
@@ -95,6 +96,13 @@ def compare_candidate_totals(office_types, year, candidate_id, envs):
                         for endpoint in endpoints
                     ):
                         print(f"\n!!! ERROR - {value} results don't match!!!\n")
+                        print(f"| Data source | Total {value} |\n|--|--|")
+                        for endpoint in endpoints:
+                            print(
+                                "| {} datatable or profile page \t\t|\t${:,.2f}|".format(
+                                    endpoint, env_results.get(endpoint, value)
+                                )
+                            )
                         mismatch_list.add((candidate.id, candidate.name))
             # Add this env's results to the list so we can cross-compare later
             env_results_list.append(env_results)
@@ -211,6 +219,23 @@ class Candidate(object):
                 self.id, self.election, "true", self.office_full.lower()
             )
         )
+        if base_url == "http://localhost:5000":
+            election_full_label = "election_full"
+        else:
+            election_full_label = "full_election"
+
+        # Office-specific queries
+        if self.office == "H":
+            election_full = "False"
+            if self.state == "PR":
+                election_full = "True"
+
+            # Add state and district to elections
+            election_url += (
+                f"&state={self.state}&district={self.district}&election_full={election_full}"
+            )
+            # 2-year totals for candidate profile page
+            candidate_url += f"&{election_full_label}={election_full}"
 
         # Office-specific queries
         if self.office == "H":
@@ -225,11 +250,11 @@ class Candidate(object):
             # Add state to elections
             election_url += f"&state={self.state}&election_full=True"
             # 6-year totals for candidate profile page
-            candidate_url += "&election_full=True"
+            candidate_url += f"&{election_full_label}=True"
 
         elif self.office == "P":
             # 4-year totals for candidate profile page
-            candidate_url += "&election_full=True"
+            candidate_url += f"&{election_full_label}=True"
 
         return datatable_url, candidate_url, election_url
 
