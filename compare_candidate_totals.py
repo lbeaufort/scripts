@@ -219,10 +219,7 @@ class Candidate(object):
                 self.id, self.election, "true", self.office_full.lower()
             )
         )
-        if base_url == "http://localhost:5000":
-            election_full_label = "election_full"
-        else:
-            election_full_label = "full_election"
+        election_full_label = "election_full"
 
         # Office-specific queries
         if self.office == "H":
