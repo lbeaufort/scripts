@@ -2,6 +2,11 @@ import os
 import requests
 import click
 
+"""
+pip install click
+python compare_candidate_totals.py --envs=dev,prod
+"""
+
 api_key = os.environ.get("FEC_API_KEY")
 
 url_lookup = {
