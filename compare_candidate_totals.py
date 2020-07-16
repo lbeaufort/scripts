@@ -62,6 +62,7 @@ def compare_candidate_totals(office_types, year, candidate_id, envs):
             candidate_results = get_results(candidate_url)
             # This is a list of all candidates in an election
             all_election_results = get_results(election_url)
+            election_match = []
             # Loop through them to match the candidate
             for election_result in all_election_results:
                 if election_result.get("candidate_id") == candidate.id:
@@ -70,11 +71,11 @@ def compare_candidate_totals(office_types, year, candidate_id, envs):
 
             if not all([datatable_results, candidate_results, election_match]):
                 print("\nERROR: No results for one endpoint")
-                print(f"Candidate datatable results? {datatable_results is not None}")
+                print(f"Candidate datatable results? {len(datatable_results) > 0}")
                 print(
-                    f"Candidate profile page results? {candidate_results is not None}"
+                    f"Candidate profile page results? {len(candidate_results) > 0}"
                 )
-                print(f"Election profile page results? {election_match is not None}")
+                print(f"Election profile page results? {len(election_match) > 0}")
                 mismatch_list.add((candidate.id, candidate.name))
             else:
                 # Take the top result
@@ -261,7 +262,7 @@ def get_printable(url):
 
 
 def get_results(url):
-    return requests.get(url).json().get("results")
+    return requests.get(url).json().get("results", [])
 
 
 if __name__ == "__main__":
